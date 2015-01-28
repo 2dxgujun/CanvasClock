@@ -1,12 +1,28 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                xmlns:tools="http://schemas.android.com/tools"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                tools:context=".MainActivity">
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="10dp"
+    tools:context=".MainActivity">
 
-    <me.gujun.demo.canvasapi.CanvasView
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:layout_centerInParent="true"/>
+    <me.gujun.demo.canvasapi.CanvasClock
+        android:layout_width="match_parent"
+        android:layout_height="300dp"/>
 
-</RelativeLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <me.gujun.demo.canvasapi.CanvasClock
+            android:layout_width="100dp"
+            android:layout_height="100dp"/>
+
+        <me.gujun.demo.canvasapi.CanvasClock
+            android:layout_width="150dp"
+            android:layout_height="150dp"/>
+    </LinearLayout>
+
+</LinearLayout>
