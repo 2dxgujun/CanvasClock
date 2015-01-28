@@ -30,42 +30,83 @@ public class CanvasClock extends View {
      */
     public static final String BLOG_2DXGUJUN = "http://2dxgujun.com";
 
-    private Paint mDialPaint;
+    // ---------------------- Robot Dimension ---------------------- //
+    private Paint mPaint;
+    private Paint mEyePaint;
 
+    private float mHeadRadius = 74f;
+    private float mHeadBodySpace = 5f;
+    private float mEyeRadius = 10f;
+    private float mEyeSpace = 74f;
+    private float mAntWidth = 10f;
+    private float mAntHeight = 24f;
+    private float mAntRoundCorner = 10f;
+    private float mBodyWidth = 150f;
+    private float mBodyHeight = 140f;
+    private float mBodyRoundCorner = 7f;
+    private float mArmWidth = 34f;
+    private float mArmHeight = 110f;
+    private float mArmBodySpace = 5f;
+    private float mArmRoundCorner = 15f;
+    private float mFootWidth = 40f;
+    private float mFootHeight = 54f;
+    private float mFootSpace = 10f;
+    private float mFootRoundCorner = 5f;
+
+    private RectF mHeadRectF;
+
+    private PointF mLeftEyePointF;
+    private PointF mRightEyePointF;
+
+    private RectF mLeftAntRectF;
+    private RectF mRightAntRectF;
+
+    private RectF mBodyRectF;
+
+    private RectF mLeftArmRectF;
+    private RectF mRightArmRectF;
+
+    private RectF mLeftFootRectF;
+    private RectF mRightFootRectF;
+    // ------------------------------------------------------------- //
+
+    // --------------------------- Clock --------------------------- //
+    private Paint mDialPaint;
     private Paint mLittleScalePaint;
     private Paint mLargeScalePaint;
-
     private Paint mHourHandPaint;
     private Paint mMinuteHandPaint;
     private Paint mSecondHandPaint;
-
     private Paint mLinkPaint;
 
-    // ---------------------- Dimension ---------------------- //
-    private int mDialRadius;
-    private int mDialStrokeWidth;
+    private float mDialRadius;
+    private float mDialStrokeWidth;
     private int mDialPadding;
 
-    private int mLittleScaleLength;
-    private int mLittleScaleStrokeWidth;
+    private float mLittleScaleLength;
+    private float mLittleScaleStrokeWidth;
 
-    private int mLargeScaleLength;
-    private int mLargeScaleStrokeWidth;
+    private float mLargeScaleLength;
+    private float mLargeScaleStrokeWidth;
 
-    private int mHourHandLength;
-    private int mMinuteHandLength;
-    private int mSecondHandLength;
+    private float mHourHandLength;
+    private float mMinuteHandLength;
+    private float mSecondHandLength;
 
-    private int mHourHandTailLength;
-    private int mMinuteHandTailLength;
-    private int mSecondHandTailLength;
+    private float mHourHandTailLength;
+    private float mMinuteHandTailLength;
+    private float mSecondHandTailLength;
 
-    private int mHourHandStrokeWidth;
-    private int mMinuteHandStrokeWidth;
-    private int mSecondHandStrokeWidth;
+    private float mHourHandStrokeWidth;
+    private float mMinuteHandStrokeWidth;
+    private float mSecondHandStrokeWidth;
 
-    private int mLinkTextSize;
-    // ---------------------- Dimension ----------------------//
+    private float mLinkTextSize;
+
+    private float mDistance;
+    private Path mLinkPath;
+    private RectF mLinkRectF;
+    // ------------------------------------------------------------- //
 
     private Time mCalendar;
 
@@ -74,10 +115,6 @@ public class CanvasClock extends View {
     private int mSeconds;
 
     private boolean mAttached;
-
-    private int mDistance;
-    private Path mLinkPath;
-    private RectF mLinkRectF;
 
     private Thread mThread = new Thread(new Runnable() {
         @Override
@@ -106,18 +143,26 @@ public class CanvasClock extends View {
         mCalendar = new Time();
         mLinkPath = new Path();
         mLinkRectF = new RectF();
-    }
 
-    @Override
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        if (mAttached) {
-            getContext().unregisterReceiver(mIntentReceiver);
-            mAttached = false;
-        }
+        mHeadRectF = new RectF();
+        mLeftEyePointF = new PointF();
+        mRightEyePointF = new PointF();
+        mLeftAntRectF = new RectF();
+        mRightAntRectF = new RectF();
+        mBodyRectF = new RectF();
+        mLeftArmRectF = new RectF();
+        mRightArmRectF = new RectF();
+        mLeftFootRectF = new RectF();
+        mRightFootRectF = new RectF();
     }
 
     private void initPaint() {
+        mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mPaint.setColor(Color.GREEN);
+
+        mEyePaint = new Paint(mPaint);
+        mEyePaint.setColor(Color.WHITE);
+
         mDialPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mDialPaint.setStyle(Paint.Style.STROKE);
         mDialPaint.setStrokeWidth(mDialStrokeWidth);
@@ -136,13 +181,12 @@ public class CanvasClock extends View {
         mHourHandPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mHourHandPaint.setStyle(Paint.Style.STROKE);
         mHourHandPaint.setStrokeWidth(mHourHandStrokeWidth);
+        mHourHandPaint.setStrokeCap(Paint.Cap.ROUND);
 
-        mMinuteHandPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mMinuteHandPaint.setStyle(Paint.Style.STROKE);
+        mMinuteHandPaint = new Paint(mHourHandPaint);
         mMinuteHandPaint.setStrokeWidth(mMinuteHandStrokeWidth);
 
-        mSecondHandPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mSecondHandPaint.setStyle(Paint.Style.STROKE);
+        mSecondHandPaint = new Paint(mMinuteHandPaint);
         mSecondHandPaint.setStrokeWidth(mSecondHandStrokeWidth);
         mSecondHandPaint.setColor(Color.RED);
     }
@@ -173,18 +217,58 @@ public class CanvasClock extends View {
     }
 
     @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        if (mAttached) {
+            getContext().unregisterReceiver(mIntentReceiver);
+            mAttached = false;
+        }
+    }
+
+    @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        // Draw head.
+        canvas.drawArc(mHeadRectF, -180, 180, true, mPaint);
+        // Draw body.
+        canvas.drawRoundRect(mBodyRectF, mBodyRoundCorner, mBodyRoundCorner, mPaint);
+        // Draw arms.
+        canvas.drawRoundRect(mLeftArmRectF, mArmRoundCorner, mArmRoundCorner, mPaint);
+        canvas.drawRoundRect(mRightArmRectF, mArmRoundCorner, mArmRoundCorner, mPaint);
+        // Draw feet.
+        canvas.drawRoundRect(mLeftFootRectF, mFootRoundCorner, mFootRoundCorner, mPaint);
+        canvas.drawRoundRect(mRightFootRectF, mFootRoundCorner, mFootRoundCorner, mPaint);
+        // Draw eyes.
+        canvas.drawCircle(mLeftEyePointF.x, mLeftEyePointF.y, mEyeRadius, mEyePaint);
+        canvas.drawCircle(mRightEyePointF.x, mRightEyePointF.y, mEyeRadius, mEyePaint);
+
+        // Draw left ant.
+        float px = mLeftEyePointF.x + (mRightEyePointF.x - mLeftEyePointF.x) / 2;
+        float py = mLeftEyePointF.y;
+        canvas.save();
+        canvas.rotate(-30, px, py);
+        canvas.drawRoundRect(mLeftAntRectF, mAntRoundCorner, mAntRoundCorner, mPaint);
+        canvas.restore();
+
+        // Draw right ant.
+        canvas.save();
+        canvas.rotate(30, px, py);
+        canvas.drawRoundRect(mRightAntRectF, mAntRoundCorner, mAntRoundCorner, mPaint);
+        canvas.restore();
+
+        // Draw dial.
         canvas.translate(getWidth() / 2, getHeight() / 2);
         canvas.drawCircle(0, 0, mDialRadius, mDialPaint);
 
+        // Draw my blog link.
         canvas.save();
         canvas.translate(-mDistance, -mDistance);
         canvas.drawTextOnPath(BLOG_2DXGUJUN, mLinkPath, 0, 0, mLinkPaint);
         canvas.restore();
 
+        // Draw dial scale.
         for (int i = 0; i < 60; i++) {
-            int y = -mDialRadius + mDialPadding;
+            float y = -mDialRadius + mDialPadding;
             if (i % 5 == 0) {
                 canvas.drawLine(0, y, 0, y + mLargeScaleLength, mLargeScalePaint);
             } else {
@@ -193,17 +277,20 @@ public class CanvasClock extends View {
             canvas.rotate(360 / 60);
         }
 
-
+        // Draw hour hand.
         canvas.save();
-        canvas.rotate(mHours / 12.0f * 360.0f);
+
+        canvas.rotate(mHours / 12.0f * 360.0f + mMinutes / 60.0f * 12.0f);
         canvas.drawLine(0, mHourHandTailLength, 0, -mHourHandLength, mHourHandPaint);
         canvas.restore();
 
+        // Draw minute hand.
         canvas.save();
         canvas.rotate(mMinutes / 60.0f * 360.0f);
         canvas.drawLine(0, mMinuteHandTailLength, 0, -mMinuteHandLength, mMinuteHandPaint);
         canvas.restore();
 
+        // Draw second hand.
         canvas.save();
         canvas.rotate(mSeconds / 60.0f * 360.0f);
         canvas.drawLine(0, mSecondHandTailLength, 0, -mSecondHandLength, mSecondHandPaint);
@@ -212,36 +299,120 @@ public class CanvasClock extends View {
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        mDialRadius = Math.min(w, h) / 2 - 10;
-        mDialStrokeWidth = mDialRadius / 20;
-        mDialPadding = mDialStrokeWidth;
+        mDialRadius = Math.min(w, h) / 2.0f - 10;
+        mDialStrokeWidth = mDialRadius / 20.0f;
+        mDialPadding = (int) mDialStrokeWidth;
+        mDialPaint.setStrokeWidth(mDialStrokeWidth);
 
         mLittleScaleLength = mDialStrokeWidth;
-        mLittleScaleStrokeWidth = mLittleScaleLength / 4 + 1;
+        mLittleScaleStrokeWidth = mLittleScaleLength / 4.0f + 1;
+        mLittleScalePaint.setStrokeWidth(mLittleScaleStrokeWidth);
 
-        mLargeScaleLength = mLittleScaleLength * 2;
-        mLargeScaleStrokeWidth = mLargeScaleLength / 4 + 3;
+        mLargeScaleLength = mLittleScaleLength * 2.5f;
+        mLargeScaleStrokeWidth = mLargeScaleLength / 4.0f + 3;
+        mLargeScalePaint.setStrokeWidth(mLargeScaleStrokeWidth);
 
-        mHourHandLength = mDialRadius / 2;
-        mMinuteHandLength = mDialRadius / 2 + mDialRadius / 3;
-        mSecondHandLength = mMinuteHandLength;
+        mHourHandLength = mDialRadius / 2.0f;
+        mMinuteHandLength = mDialRadius / 2.0f + mDialRadius / 4.0f;
+        mSecondHandLength = mDialRadius / 2.0f + mDialRadius / 3.0f;
 
-        mHourHandTailLength = mHourHandLength / 10;
+        mHourHandTailLength = mHourHandLength / 10.0f;
         mMinuteHandTailLength = mHourHandTailLength;
-        mSecondHandTailLength = mSecondHandLength / 6;
+        mSecondHandTailLength = mSecondHandLength / 6.0f;
 
         mHourHandStrokeWidth = (int) dp2px(3);
-        mMinuteHandStrokeWidth = (int) dp2px(3);
+        mHourHandPaint.setStrokeWidth(mHourHandStrokeWidth);
+        mMinuteHandStrokeWidth = (int) dp2px(2);
+        mMinuteHandPaint.setStrokeWidth(mMinuteHandStrokeWidth);
         mSecondHandStrokeWidth = (int) dp2px(1);
+        mSecondHandPaint.setStrokeWidth(mSecondHandStrokeWidth);
 
-        mLinkTextSize = (int) sp2px(7);
+        mLinkTextSize = (int) sp2px(mDialStrokeWidth / 2);
+        mLinkPaint.setTextSize(mLinkTextSize);
 
-        initPaint();
-
+        // ------------------------------- //
         mDistance = mDialRadius * (int) Math.sqrt(2) - mDialRadius / 2;
         mLinkRectF.set(0, 0, mDistance * 2, mDistance * 2);
         mLinkPath.reset();
         mLinkPath.addArc(mLinkRectF, -180, 180);
+
+        float heightSum = mAntHeight + mHeadRadius + mBodyHeight + mFootHeight + 5;
+        float proportion = h / 3 / heightSum;
+
+        mHeadRadius *= proportion;
+        mHeadBodySpace *= proportion;
+        mEyeRadius *= proportion;
+        mEyeSpace *= proportion;
+        mAntWidth *= proportion;
+        mAntHeight *= proportion;
+        mAntRoundCorner *= proportion;
+        mBodyWidth *= proportion;
+        mBodyHeight *= proportion;
+        mBodyRoundCorner *= proportion;
+        mArmWidth *= proportion;
+        mArmHeight *= proportion;
+        mArmBodySpace *= proportion;
+        mArmRoundCorner *= proportion;
+        mFootWidth *= proportion;
+        mFootHeight *= proportion;
+        mFootSpace *= proportion;
+        mFootRoundCorner *= proportion;
+
+        float headLeft = w / 2 - mHeadRadius;
+        float headRight = headLeft + mHeadRadius * 2;
+        float headTop = mAntHeight + mDialRadius - mHeadRadius * 2;
+        float headBottom = headTop + mHeadRadius * 2;
+        mHeadRectF.set(headLeft, headTop, headRight, headBottom);
+
+        float leftEyeX = w / 2 - mEyeSpace / 2;
+        float leftEyeY = headTop + mHeadRadius / 2;
+        mLeftEyePointF.set(leftEyeX, leftEyeY);
+
+        float rightEyeX = leftEyeX + mEyeSpace;
+        float rightEyeY = leftEyeY;
+        mRightEyePointF.set(rightEyeX, rightEyeY);
+
+        float leftAntLeft = w / 2 - mAntWidth / 2;
+        float leftAntRight = leftAntLeft + mAntWidth;
+        float leftAntTop = headTop - mAntHeight;
+        float leftAntBottom = leftAntTop + mAntHeight;
+        mLeftAntRectF.set(leftAntLeft, leftAntTop, leftAntRight, leftAntBottom);
+
+        float rightAntLeft = leftAntLeft;
+        float rightAntRight = rightAntLeft + mAntWidth;
+        float rightAntTop = headTop - mAntHeight;
+        float rightAntBottom = rightAntTop + mAntHeight;
+        mRightAntRectF.set(rightAntLeft, rightAntTop, rightAntRight, rightAntBottom);
+
+        float bodyLeft = (w - mBodyWidth) / 2;
+        float bodyRight = bodyLeft + mBodyWidth;
+        float bodyTop = headTop + mHeadRadius + mHeadBodySpace;
+        float bodyBottom = bodyTop + mBodyHeight;
+        mBodyRectF.set(bodyLeft, bodyTop, bodyRight, bodyBottom);
+
+        float leftArmLeft = bodyLeft - mArmBodySpace - mArmWidth;
+        float leftArmRight = leftArmLeft + mArmWidth;
+        float leftArmTop = bodyTop;
+        float leftArmBottom = leftArmTop + mArmHeight;
+        mLeftArmRectF.set(leftArmLeft, leftArmTop, leftArmRight, leftArmBottom);
+
+        float rightArmLeft = bodyRight + mArmBodySpace;
+        float rightArmRight = rightArmLeft + mArmWidth;
+        float rightArmTop = bodyTop;
+        float rightArmBottom = rightArmTop + mArmHeight;
+        mRightArmRectF.set(rightArmLeft, rightArmTop, rightArmRight, rightArmBottom);
+
+        float leftFootLeft = w / 2 - mFootSpace / 2 - mFootWidth;
+        float leftFootRight = leftFootLeft + mFootWidth;
+        float leftFootTop = bodyBottom - 5;
+        float leftFootBottom = leftFootTop + mFootHeight;
+        mLeftFootRectF.set(leftFootLeft, leftFootTop, leftFootRight, leftFootBottom);
+
+        float rightFootLeft = leftFootRight + mFootSpace;
+        float rightFootRight = rightFootLeft + mFootWidth;
+        float rightFootTop = bodyBottom - 5;
+        float rightFootBottom = rightFootTop + mFootHeight;
+        mRightFootRectF.set(rightFootLeft, rightFootTop, rightFootRight, rightFootBottom);
     }
 
     private void onTimeChanged() {
@@ -275,174 +446,5 @@ public class CanvasClock extends View {
     private float sp2px(float sp) {
         final float scale = getResources().getDisplayMetrics().scaledDensity;
         return sp * scale;
-    }
-
-    /**
-     * Android robot purely drawn by Canvas API.
-     */
-    private class AndroidRobot extends View {
-        private Paint mPaint;
-        private Paint mEyePaint;
-
-        private float mHeadRadius = 74f;
-        private float mHeadBodySpace = 5f;
-        private float mEyeRadius = 10f;
-        private float mEyeSpace = 74f;
-        private float mAntWidth = 10f;
-        private float mAntHeight = 24f;
-        private float mAntRoundCorner = 10f;
-        private float mBodyWidth = 150f;
-        private float mBodyHeight = 140f;
-        private float mArmWidth = 34f;
-        private float mArmHeight = 110f;
-        private float mArmBodySpace = 5f;
-        private float mArmRoundCorner = 15f;
-        private float mFootWidth = 40f;
-        private float mFootHeight = 54f;
-        private float mFootSpace = 10f;
-        private float mFootRoundCorner = 5f;
-
-        private RectF mHeadRectF;
-        private PointF mLeftEyePointF;
-        private PointF mRightEyePointF;
-        private RectF mLeftAntRectF;
-        private RectF mRightAntRectF;
-        private RectF mBodyRectF;
-        private RectF mLeftArmRectF;
-        private RectF mRightArmRectF;
-        private RectF mLeftFootRectF;
-        private RectF mRightFootRectF;
-
-
-        public AndroidRobot(Context context) {
-            this(context, null);
-        }
-
-        public AndroidRobot(Context context, AttributeSet attrs) {
-            super(context, attrs);
-            mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-            mEyePaint = new Paint(mPaint);
-            mEyePaint.setColor(Color.WHITE);
-
-            mHeadRectF = new RectF();
-            mLeftEyePointF = new PointF();
-            mRightEyePointF = new PointF();
-            mLeftAntRectF = new RectF();
-            mRightAntRectF = new RectF();
-            mBodyRectF = new RectF();
-            mLeftArmRectF = new RectF();
-            mRightArmRectF = new RectF();
-            mLeftFootRectF = new RectF();
-            mRightFootRectF = new RectF();
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            super.onDraw(canvas);
-
-            canvas.drawArc(mHeadRectF, -180, 180, true, mPaint);
-            canvas.drawRoundRect(mBodyRectF, 10, 10, mPaint);
-            canvas.drawRoundRect(mLeftArmRectF, mArmRoundCorner, mArmRoundCorner, mPaint);
-            canvas.drawRoundRect(mRightArmRectF, mArmRoundCorner, mArmRoundCorner, mPaint);
-            canvas.drawRoundRect(mLeftFootRectF, mFootRoundCorner, mFootRoundCorner, mPaint);
-            canvas.drawRoundRect(mRightFootRectF, mFootRoundCorner, mFootRoundCorner, mPaint);
-
-            canvas.drawCircle(mLeftEyePointF.x, mLeftEyePointF.y, mEyeRadius, mEyePaint);
-            canvas.drawCircle(mRightEyePointF.x, mRightEyePointF.y, mEyeRadius, mEyePaint);
-
-            float px = mLeftEyePointF.x + (mRightEyePointF.x - mLeftEyePointF.x) / 2;
-            float py = mLeftEyePointF.y;
-            canvas.save();
-            canvas.rotate(-30, px, py);
-            canvas.drawRoundRect(mLeftAntRectF, mAntRoundCorner, mAntRoundCorner, mPaint);
-            canvas.restore();
-
-            canvas.save();
-            canvas.rotate(30, px, py);
-            canvas.drawRoundRect(mRightAntRectF, mAntRoundCorner, mAntRoundCorner, mPaint);
-            canvas.restore();
-        }
-
-        @Override
-        protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-            super.onSizeChanged(w, h, oldw, oldh);
-            float heightSum = mAntHeight + mHeadRadius + mBodyHeight + mFootHeight + 5;
-            float proportion = h / heightSum;
-
-            mHeadRadius *= proportion;
-            mHeadBodySpace *= proportion;
-            mEyeRadius *= proportion;
-            mEyeSpace *= proportion;
-            mAntWidth *= proportion;
-            mAntHeight *= proportion;
-            mAntRoundCorner *= proportion;
-            mBodyWidth *= proportion;
-            mBodyHeight *= proportion;
-            mArmWidth *= proportion;
-            mArmHeight *= proportion;
-            mArmBodySpace *= proportion;
-            mArmRoundCorner *= proportion;
-            mFootWidth *= proportion;
-            mFootHeight *= proportion;
-            mFootSpace *= proportion;
-            mFootRoundCorner *= proportion;
-
-            float headLeft = w / 2 - mHeadRadius;
-            float headRight = headLeft + mHeadRadius * 2;
-            float headTop = mAntHeight;
-            float headBottom = headTop + mHeadRadius * 2;
-            mHeadRectF.set(headLeft, headTop, headRight, headBottom);
-
-            float leftEyeX = w / 2 - mEyeSpace / 2;
-            float leftEyeY = mAntHeight + mHeadRadius / 2;
-            mLeftEyePointF.set(leftEyeX, leftEyeY);
-
-            float rightEyeX = leftEyeX + mEyeSpace;
-            float rightEyeY = leftEyeY;
-            mRightEyePointF.set(rightEyeX, rightEyeY);
-
-            float leftAntLeft = w / 2 - mAntWidth / 2;
-            float leftAntRight = leftAntLeft + mAntWidth;
-            float leftAntTop = 0;
-            float leftAntBottom = leftAntTop + mAntHeight;
-            mLeftAntRectF.set(leftAntLeft, leftAntTop, leftAntRight, leftAntBottom);
-
-            float rightAntLeft = leftAntLeft;
-            float rightAntRight = rightAntLeft + mAntWidth;
-            float rightAntTop = 0;
-            float rightAntBottom = rightAntTop + mAntHeight;
-            mRightAntRectF.set(rightAntLeft, rightAntTop, rightAntRight, rightAntBottom);
-
-            float bodyLeft = (w - mBodyWidth) / 2;
-            float bodyRight = bodyLeft + mBodyWidth;
-            float bodyTop = mAntHeight + mHeadRadius + mHeadBodySpace;
-            float bodyBottom = bodyTop + mBodyHeight;
-            mBodyRectF.set(bodyLeft, bodyTop, bodyRight, bodyBottom);
-
-            float leftArmLeft = bodyLeft - mArmBodySpace - mArmWidth;
-            float leftArmRight = leftArmLeft + mArmWidth;
-            float leftArmTop = bodyTop;
-            float leftArmBottom = leftArmTop + mArmHeight;
-            mLeftArmRectF.set(leftArmLeft, leftArmTop, leftArmRight, leftArmBottom);
-
-            float rightArmLeft = bodyRight + mArmBodySpace;
-            float rightArmRight = rightArmLeft + mArmWidth;
-            float rightArmTop = bodyTop;
-            float rightArmBottom = rightArmTop + mArmHeight;
-            mRightArmRectF.set(rightArmLeft, rightArmTop, rightArmRight, rightArmBottom);
-
-            float leftFootLeft = w / 2 - mFootSpace / 2 - mFootWidth;
-            float leftFootRight = leftFootLeft + mFootWidth;
-            float leftFootTop = bodyBottom - 5;
-            float leftFootBottom = leftFootTop + mFootHeight;
-            mLeftFootRectF.set(leftFootLeft, leftFootTop, leftFootRight, leftFootBottom);
-
-            float rightFootLeft = leftFootRight + mFootSpace;
-            float rightFootRight = rightFootLeft + mFootWidth;
-            float rightFootTop = bodyBottom - 5;
-            float rightFootBottom = rightFootTop + mFootHeight;
-            mRightFootRectF.set(rightFootLeft, rightFootTop, rightFootRight, rightFootBottom);
-        }
     }
 }
