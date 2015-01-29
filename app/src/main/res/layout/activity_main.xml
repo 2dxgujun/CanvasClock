@@ -14,8 +14,4 @@
     <me.gujun.demo.canvasapi.CanvasClock
         android:layout_width="match_parent"
         android:layout_height="150dp"/>
-
-    <me.gujun.demo.canvasapi.CanvasClock
-        android:layout_width="match_parent"
-        android:layout_height="100dp"/>
 </LinearLayout>

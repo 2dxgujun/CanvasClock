@@ -10,9 +10,11 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
 import android.graphics.RectF;
+import android.os.Handler;
 import android.text.TextPaint;
 import android.text.format.Time;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 import java.util.TimeZone;
@@ -70,7 +72,6 @@ public class CanvasClock extends View {
     private RectF mRightFootRectF;
     // ------------------------------------------------------------- //
 
-    // --------------------------- Clock --------------------------- //
     private Paint mDialPaint;
     private Paint mLittleScalePaint;
     private Paint mLargeScalePaint;
@@ -106,7 +107,6 @@ public class CanvasClock extends View {
     private float mDistance;
     private Path mLinkPath;
     private RectF mLinkRectF;
-    // ------------------------------------------------------------- //
 
     private Time mCalendar;
 
@@ -116,21 +116,19 @@ public class CanvasClock extends View {
 
     private boolean mAttached;
 
-    private Thread mThread = new Thread(new Runnable() {
+    private Runnable mTickRunnable = new Runnable() {
         @Override
         public void run() {
-            while (Thread.interrupted() == false) {
-                onTimeChanged();
-                postInvalidate();
-
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            Log.i("LOG", "Runnable Tick");
+            onTimeChanged();
+            invalidate();
+            if (mAttached) {
+                mTickHandler.postDelayed(mTickRunnable, 1000);
             }
         }
-    });
+    };
+
+    private Handler mTickHandler;
 
     public CanvasClock(Context context) {
         this(context, null);
@@ -139,6 +137,8 @@ public class CanvasClock extends View {
     public CanvasClock(Context context, AttributeSet attrs) {
         super(context, attrs);
         initPaint();
+
+        mTickHandler = new Handler();
 
         mCalendar = new Time();
         mLinkPath = new Path();
@@ -196,6 +196,7 @@ public class CanvasClock extends View {
         super.onAttachedToWindow();
         if (!mAttached) {
             mAttached = true;
+            mTickHandler.post(mTickRunnable);
 
             IntentFilter filter = new IntentFilter();
             filter.addAction(Intent.ACTION_TIME_TICK);
@@ -203,7 +204,6 @@ public class CanvasClock extends View {
             filter.addAction(Intent.ACTION_TIMEZONE_CHANGED);
 
             getContext().registerReceiver(mIntentReceiver, filter);
-            mThread.start();
         }
 
         // NOTE: It's safe to do these after registering the receiver since the always runs
@@ -267,8 +267,8 @@ public class CanvasClock extends View {
         canvas.restore();
 
         // Draw dial scale.
+        float y = -mDialRadius + mDialPadding;
         for (int i = 0; i < 60; i++) {
-            float y = -mDialRadius + mDialPadding;
             if (i % 5 == 0) {
                 canvas.drawLine(0, y, 0, y + mLargeScaleLength, mLargeScalePaint);
             } else {
@@ -279,8 +279,7 @@ public class CanvasClock extends View {
 
         // Draw hour hand.
         canvas.save();
-
-        canvas.rotate(mHours / 12.0f * 360.0f + mMinutes / 60.0f * 12.0f);
+        canvas.rotate(mHours / 12.0f * 360.0f + mMinutes / 60.0f * 30.0f);
         canvas.drawLine(0, mHourHandTailLength, 0, -mHourHandLength, mHourHandPaint);
         canvas.restore();
 
@@ -330,11 +329,11 @@ public class CanvasClock extends View {
         mLinkTextSize = (int) sp2px(mDialStrokeWidth / 2);
         mLinkPaint.setTextSize(mLinkTextSize);
 
-        // ------------------------------- //
         mDistance = mDialRadius * (int) Math.sqrt(2) - mDialRadius / 2;
         mLinkRectF.set(0, 0, mDistance * 2, mDistance * 2);
         mLinkPath.reset();
         mLinkPath.addArc(mLinkRectF, -180, 180);
+        // ------------------------------- //
 
         float heightSum = mAntHeight + mHeadRadius + mBodyHeight + mFootHeight + 5;
         float proportion = h / 3 / heightSum;
